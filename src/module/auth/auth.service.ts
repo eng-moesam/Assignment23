@@ -3,7 +3,6 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { IHUser, User } from "src/models/user.model";
 import { RedisService } from "../../common/services/redis/redis.service";
-import { EmailSendService } from "../../common/services/email/send.email";
 import { UserRepo } from "../../Repo/user.repo";
 import { TokenService } from "../../common/services/security/token.service";
 import { SecurityService } from "src/common/services/security/security.service";
@@ -21,9 +20,8 @@ import { OAuth2Client } from "google-auth-library";
  @Injectable()
  export class AuthService{
 
-  constructor(@InjectModel(User.name) private __userModel :Model<User>,
+  constructor(
   private _redisMethods:RedisService,
-  private _SendEmail:EmailSendService,
   private _userRepo:UserRepo,
   private _tokenService:TokenService,
   private _securityService:SecurityService,

@@ -79,8 +79,15 @@ abstract class DBRepo<T> {
     size?:number;
   }){
      const skip = (page-1) * size
+
      const docs = await this.Model.find(filter,projection,options).skip(skip).limit(size)
-  
+// let query = this.Model.find(filter, projection)
+
+// if (options?.populate) {
+//   query = query.populate(options.populate as any)
+// }
+
+// const docs = await query.skip(skip).limit(size)
      const totalDoc = await this.Model.countDocuments(filter)
      return{
       docs,

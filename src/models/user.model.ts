@@ -45,7 +45,7 @@ export class User{
     email!: string;
     @Prop({
         type: String,
-        required: function (this:any): boolean {
+        required: function (this:IHUser): boolean {
             return this.provider == ProviderEnum.System
         }
     })

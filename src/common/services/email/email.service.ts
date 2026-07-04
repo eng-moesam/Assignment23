@@ -1,26 +1,76 @@
-
-import {RedisService }from "../redis/redis.service.js"
-import { EmailEnum } from "../../enums/email.enums.js"
-// import { hashOperation } from "../security/security.service.js"
-// import { sendEmail } from "./send.email.js"
-import {createOtp} from "./otp.service.js"
-import { temblateEmail } from "./email.temblate.js"
-import { BadRequestException, Injectable } from "@nestjs/common"
-import { EmailSendService } from "./send.email.js"
-import { SecurityService } from "../security/security.service.js"
-// import { BadRequestException } from "../exceptions/domian.exceptions.js"
+import nodemailer from "nodemailer";
+import type { Attachment } from "nodemailer/lib/mailer/index.js";
+import { EmailEnum } from "../../enums/email.enums.js";
+import { RedisService } from "../redis/redis.service.js";
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { SecurityService } from "../security/security.service.js";
+import { temblateEmail } from "./email.temblate.js";
+import { createOtp } from "./otp.service.js";
 
 
 @Injectable()
 export class MailService {
-   
-    
-   constructor(private _redisMethods : RedisService,
-    private _sendEmail:EmailSendService,
-    private _securityService:SecurityService   
-){}
+    private EMAIL: string;
+    private EMAIL_APP_PASSWORD: string;
 
-    async sendEmailOtp({ email, emailType, subject }:{email:string,emailType:EmailEnum, subject:string}) {
+    constructor(private _redisMethods: RedisService,
+        private _securityService: SecurityService,
+        private _configService: ConfigService
+
+
+    ) {
+        this.EMAIL = _configService.get<string>("EMAIL") as string
+        this.EMAIL_APP_PASSWORD = _configService.get<string>("EMAIL_APP_PASSWORD") as string
+    }
+
+    sendEmail = async ({ to, cc, bcc, subject, text, html, attachments = [] }:
+        {
+            to: string | string[],
+            cc?: string | string[],
+            bcc?: string | string[],
+            subject: string,
+            text?: string,
+            html?: string,
+            attachments?: Attachment[]
+        }) => {
+        // Create a transporter using Ethereal test credentials.
+        // For production, replace with your actual SMTP server details.
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: this.EMAIL,
+                pass: this.EMAIL_APP_PASSWORD,
+            },
+            // tls:{
+            //   rejectUnauthorized:false
+            // }
+        });
+
+        // Send an email using async/await
+        (async () => {
+            try{
+            const info = await transporter.sendMail({
+                from: `"Saraha App" <${this.EMAIL}>`,
+                to,
+                cc,
+                bcc,
+                subject,
+                text,
+                html,
+                attachments,
+
+            });
+
+            console.log("Message sent:", info.messageId,info.rejected,info.response);
+            return info
+        } catch (error) {
+            console.log(error);
+            throw new BadRequestException("failed to send email");
+        }
+        })();
+    }
+    async sendEmailOtp({ email, emailType, subject }: { email: string, emailType: EmailEnum, subject: string }) {
 
         const prevOtp = await this._redisMethods.ttl(this._redisMethods.getOtpKey({ email, emailType }))
         if (prevOtp > 0) {
@@ -49,9 +99,9 @@ export class MailService {
 
         }
 
-        const otp= createOtp()
+        const otp = createOtp()
 
-        await this._sendEmail.sendEmail({ to: email, subject, html: temblateEmail(otp)  })
+        await this.sendEmail({ to: email, subject, html: temblateEmail(otp) })
 
 
         await this._redisMethods.set({

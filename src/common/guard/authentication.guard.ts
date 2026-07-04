@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { TokenService } from '../services/security/token.service';
 import { IRequestAuth } from '../interface/request.interface';
 import { Reflector } from '@nestjs/core';
+import { tokenTypeEnum } from '../enums/token.enums';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -42,7 +43,7 @@ const  contextType = context.getType()
         throw new UnauthorizedException("you need to login frist")
 
       }
-      const tokenType = this._reflactor.getAllAndOverride("tokenType",[context.getHandler(),context.getClass()])
+      const tokenType = this._reflactor.getAllAndOverride("tokenType",[context.getHandler(),context.getClass()])??tokenTypeEnum.access
       const{user,verfiy}= await this._tokenService.checkTokenCode(tokenKey,
         tokenType
     )
